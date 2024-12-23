@@ -33,14 +33,18 @@ container-targets: container-image container-gen-content container-render contai
 help: ## Show this help text.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+dependencies:
+	npm ci
+	cd themes/docsy/ && npm i
+
 gen-content: ## Generates content from external sources.
 	hack/gen-content.sh
 
-render: ## Build the site using Hugo on the host.
+render: dependencies ## Build the site using Hugo on the host.
 	git submodule update --init --recursive --depth 1
 	hugo --verbose --ignoreCache --minify
 
-server: ## Run Hugo locally (if Hugo "extended" is installed locally)
+server: dependencies ## Run Hugo locally (if Hugo "extended" is installed locally)
 	git submodule update --init --recursive --depth 1
 	hugo server \
 		--verbose \
@@ -62,19 +66,19 @@ docker-gen-content:
 container-gen-content: ## Generates content from external sources within a container (equiv to gen-content).
 	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hack/gen-content.sh
 
-docker-render:
+docker-render: dependencies
 	@echo -e "**** The use of docker-render is deprecated. Use container-render instead. ****" 1>&2
 	$(MAKE) container-render
 
-container-render: ## Build the site using Hugo within a container (equiv to render).
+container-render: dependencies ## Build the site using Hugo within a container (equiv to render).
 	git submodule update --init --recursive --depth 1
 	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hugo --verbose --ignoreCache --minify
 
-docker-server:
+docker-server: dependencies
 	@echo -e "**** The use of docker-server is deprecated. Use container-server instead. ****" 1>&2
 	$(MAKE) container-server
 
-container-server: ## Run Hugo locally within a container, available at http://localhost:1313/
+container-server: dependencies ## Run Hugo locally within a container, available at http://localhost:1313/
 	# no build lock to allow for read-only mounts
 	git submodule update --init --recursive --depth 1
 	$(CONTAINER_RUN) -p 1313:1313 \
@@ -127,7 +131,7 @@ clean-all: ## Cleans both build artifacts and files sycned to content directory
 		-not -name "code-of-conduct.md" \
 		-exec rm -rf {} \;
 
-production-build: ## Builds the production site (this command used only by Netlify).
+production-build: dependencies ## Builds the production site (this command used only by Netlify).
 	$(BLOCK_STDOUT_CMD)
 	git submodule update --init --recursive --depth 1
 	hack/gen-content.sh
@@ -137,7 +141,7 @@ production-build: ## Builds the production site (this command used only by Netli
 		--ignoreCache \
 		--minify
 
-preview-build: ## Builds a deploy preview of the site (this command used only by Netlify).
+preview-build: dependencies ## Builds a deploy preview of the site (this command used only by Netlify).
 	$(BLOCK_STDOUT_CMD)
 	git submodule update --init --recursive --depth 1
 	hack/gen-content.sh
