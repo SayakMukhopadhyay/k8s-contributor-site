@@ -39,11 +39,11 @@ gen-content: ## Generates content from external sources.
 	hack/gen-content.sh
 
 render: dependencies ## Build the site using Hugo on the host.
-	hugo --verbose --ignoreCache --minify
+	hugo --logLevel info --ignoreCache --minify
 
 server: dependencies ## Run Hugo locally (if Hugo "extended" is installed locally)
 	hugo server \
-		--verbose \
+		--logLevel info \
 		--buildDrafts \
 		--buildFuture \
 		--disableFastRender \
@@ -68,7 +68,7 @@ docker-render:
 	$(MAKE) container-render
 
 container-render: ## Build the site using Hugo within a container (equiv to render).
-	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hugo --verbose --ignoreCache --minify
+	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hugo --logLevel info --ignoreCache --minify
 
 docker-server:
 	@echo -e "**** The use of docker-server is deprecated. Use container-server instead. ****" 1>&2
@@ -86,7 +86,7 @@ container-server: ## Run Hugo locally within a container, available at http://lo
 		 cd /tmp/src && \
 		hugo server \
 		--environment preview \
-		--verbose \
+		--logLevel info \
 		--noBuildLock \
 		--bind 0.0.0.0 \
 		--buildDrafts \
@@ -131,7 +131,7 @@ production-build: ## Builds the production site (this command used only by Netli
 	hack/gen-content.sh
 	hugo \
 		--environment production \
-		--verbose \
+		--logLevel info \
 		--ignoreCache \
 		--minify
 
@@ -140,7 +140,7 @@ preview-build: ## Builds a deploy preview of the site (this command used only by
 	hack/gen-content.sh
 	hugo \
 		--environment preview \
-		--verbose \
+		--logLevel info \
 		--baseURL $(DEPLOY_PRIME_URL) \
 		--buildDrafts \
 		--buildFuture \
