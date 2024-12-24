@@ -18,7 +18,8 @@ RUN apk add --no-cache \
 
 WORKDIR /src
 
-# Required for PostCSS
+COPY package*.json ./
+
 RUN npm ci
 
 RUN mkdir -p /usr/local/src && \
