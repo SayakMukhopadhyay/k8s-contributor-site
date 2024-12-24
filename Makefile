@@ -27,25 +27,19 @@ BLOCK_STDOUT_CMD	:= python -c "import os,sys,fcntl; \
 .DEFAULT_GOAL	:= help
 
 .PHONY: targets container-targets
-targets: help gen-content render serve clean clean-all sproduction preview-build
+targets: help gen-content render server clean clean-all production-build preview-build
 container-targets: container-image container-gen-content container-render container-server
 
 help: ## Show this help text.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-dependencies:
-	npm ci
-	cd themes/docsy/ && npm i
-
 gen-content: ## Generates content from external sources.
 	hack/gen-content.sh
 
-render: dependencies ## Build the site using Hugo on the host.
-	git submodule update --init --recursive --depth 1
+render: ## Build the site using Hugo on the host.
 	hugo --verbose --ignoreCache --minify
 
-server: dependencies ## Run Hugo locally (if Hugo "extended" is installed locally)
-	git submodule update --init --recursive --depth 1
+server: ## Run Hugo locally (if Hugo "extended" is installed locally)
 	hugo server \
 		--verbose \
 		--buildDrafts \
@@ -53,8 +47,9 @@ server: dependencies ## Run Hugo locally (if Hugo "extended" is installed locall
 		--disableFastRender \
 		--ignoreCache
 
-docker-image: container-image
+docker-image:
 	@echo -e "**** The use of docker-image is deprecated. Use container-image instead. ****" 1>&2
+	$(MAKE) container-image
 
 container-image: ## Build container image for use with container-* targets.
 	$(CONTAINER_ENGINE) build . -t $(CONTAINER_IMAGE) --build-arg HUGO_VERSION=$(HUGO_VERSION)
@@ -66,21 +61,19 @@ docker-gen-content:
 container-gen-content: ## Generates content from external sources within a container (equiv to gen-content).
 	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hack/gen-content.sh
 
-docker-render: dependencies
+docker-render:
 	@echo -e "**** The use of docker-render is deprecated. Use container-render instead. ****" 1>&2
 	$(MAKE) container-render
 
-container-render: dependencies ## Build the site using Hugo within a container (equiv to render).
-	git submodule update --init --recursive --depth 1
+container-render: ## Build the site using Hugo within a container (equiv to render).
 	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hugo --verbose --ignoreCache --minify
 
-docker-server: dependencies
+docker-server:
 	@echo -e "**** The use of docker-server is deprecated. Use container-server instead. ****" 1>&2
 	$(MAKE) container-server
 
-container-server: dependencies ## Run Hugo locally within a container, available at http://localhost:1313/
+container-server: ## Run Hugo locally within a container, available at http://localhost:1313/
 	# no build lock to allow for read-only mounts
-	git submodule update --init --recursive --depth 1
 	$(CONTAINER_RUN) -p 1313:1313 \
 		--mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 \
 		--read-only \
@@ -104,7 +97,7 @@ container-server: dependencies ## Run Hugo locally within a container, available
 clean: ## Cleans build artifacts.
 	rm -rf public/ resources/ _tmp/
 
-clean-all: ## Cleans both build artifacts and files sycned to content directory
+clean-all: ## Cleans both build artifacts and files synced to content directory
 	rm -rf public/ resources/ _tmp/
 	rm -f content/en/events/community-meeting.md
 	rm -f content/en/events/meet-our-contributors.md
@@ -131,9 +124,8 @@ clean-all: ## Cleans both build artifacts and files sycned to content directory
 		-not -name "code-of-conduct.md" \
 		-exec rm -rf {} \;
 
-production-build: dependencies ## Builds the production site (this command used only by Netlify).
+production-build: ## Builds the production site (this command used only by Netlify).
 	$(BLOCK_STDOUT_CMD)
-	git submodule update --init --recursive --depth 1
 	hack/gen-content.sh
 	hugo \
 		--environment production \
@@ -141,9 +133,8 @@ production-build: dependencies ## Builds the production site (this command used 
 		--ignoreCache \
 		--minify
 
-preview-build: dependencies ## Builds a deploy preview of the site (this command used only by Netlify).
+preview-build: ## Builds a deploy preview of the site (this command used only by Netlify).
 	$(BLOCK_STDOUT_CMD)
-	git submodule update --init --recursive --depth 1
 	hack/gen-content.sh
 	hugo \
 		--environment preview \
