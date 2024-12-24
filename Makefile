@@ -16,10 +16,9 @@ CONTAINER_ENGINE	?= docker
 CONTAINER_RUN		:= $(CONTAINER_ENGINE) run --user : --rm -it -v "$(CURDIR):/src"
 HUGO_VERSION		:= $(shell grep ^HUGO_VERSION netlify.toml | tail -n 1 | cut -d '=' -f 2 | tr -d " \"\n")
 CONTAINER_IMAGE		:= k8s-contrib-site-hugo
-REPO_ROOT	:=${CURDIR}
 
-# Fast NONBlOCKING IO to stdout caused by the hack/gen-content.sh script can
-# cause Netlify builds to terminate unexpectantly. This forces stdout to block.
+# Fast NONBLOCKING IO to stdout caused by the hack/gen-content.sh script can
+# cause Netlify builds to terminate unexpectedly. This forces stdout to block.
 BLOCK_STDOUT_CMD	:= python -c "import os,sys,fcntl; \
 					flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); \
 					fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);"
@@ -33,13 +32,16 @@ container-targets: container-image container-gen-content container-render contai
 help: ## Show this help text.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+dependencies:
+	npm ci
+
 gen-content: ## Generates content from external sources.
 	hack/gen-content.sh
 
-render: ## Build the site using Hugo on the host.
+render: dependencies ## Build the site using Hugo on the host.
 	hugo --verbose --ignoreCache --minify
 
-server: ## Run Hugo locally (if Hugo "extended" is installed locally)
+server: dependencies ## Run Hugo locally (if Hugo "extended" is installed locally)
 	hugo server \
 		--verbose \
 		--buildDrafts \
