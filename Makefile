@@ -14,8 +14,21 @@
 
 CONTAINER_ENGINE	?= docker
 CONTAINER_RUN		:= $(CONTAINER_ENGINE) run --user : --rm -it -v "$(CURDIR):/src"
+CONTAINER_RUN_TTY	:= $(CONTAINER_ENGINE) run --user : --rm -it
 HUGO_VERSION		:= $(shell grep ^HUGO_VERSION netlify.toml | tail -n 1 | cut -d '=' -f 2 | tr -d " \"\n")
 CONTAINER_IMAGE		:= k8s-contrib-site-hugo
+
+CONTAINER_HUGO_MOUNTS = \
+	--read-only \
+	--mount type=bind,source=$(CURDIR)/.git,target=/src/.git,readonly \
+	--mount type=bind,source=$(CURDIR)/assets,target=/src/assets,readonly \
+	--mount type=bind,source=$(CURDIR)/content,target=/src/content,readonly \
+	--mount type=bind,source=$(CURDIR)/external-sources,target=/src/external-sources,readonly \
+	--mount type=bind,source=$(CURDIR)/hack,target=/src/hack,readonly \
+	--mount type=bind,source=$(CURDIR)/layouts,target=/src/layouts,readonly \
+	--mount type=bind,source=$(CURDIR)/static,target=/src/static,readonly \
+	--mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 \
+	--mount type=bind,source=$(CURDIR)/hugo.yaml,target=/src/hugo.yaml,readonly
 
 # Fast NONBLOCKING IO to stdout caused by the hack/gen-content.sh script can
 # cause Netlify builds to terminate unexpectedly. This forces stdout to block.
@@ -68,7 +81,7 @@ docker-render:
 	$(MAKE) container-render
 
 container-render: ## Build the site using Hugo within a container (equiv to render).
-	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hugo --logLevel info --ignoreCache --minify
+	$(CONTAINER_RUN_TTY) $(CONTAINER_HUGO_MOUNTS) $(CONTAINER_IMAGE) hugo --logLevel info --ignoreCache --minify
 
 docker-server:
 	@echo -e "**** The use of docker-server is deprecated. Use container-server instead. ****" 1>&2
@@ -76,9 +89,8 @@ docker-server:
 
 container-server: ## Run Hugo locally within a container, available at http://localhost:1313/
 	# no build lock to allow for read-only mounts
-	$(CONTAINER_RUN) -p 1313:1313 \
-		--mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 \
-		--read-only \
+	$(CONTAINER_RUN_TTY) -p 1313:1313 \
+		$(CONTAINER_HUGO_MOUNTS) \
 		--cap-drop=ALL \
 		--cap-drop=AUDIT_WRITE \
 		$(CONTAINER_IMAGE) \
